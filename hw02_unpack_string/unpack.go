@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 const EscapeSymbol = '\\'
@@ -22,8 +21,10 @@ func Unpack(s string) (string, error) {
 		isEscape bool
 	)
 
+	isDigit := func(c rune) bool { return c >= '0' && c <= '9' }
+
 	for _, char := range s {
-		if isEscape && !(unicode.IsDigit(char) || char == EscapeSymbol) {
+		if isEscape && !(isDigit(char) || char == EscapeSymbol) {
 			return "", ErrInvalidString
 		}
 
@@ -32,11 +33,11 @@ func Unpack(s string) (string, error) {
 			continue
 		}
 
-		if unicode.IsDigit(char) && !isEscape {
+		if isDigit(char) && !isEscape {
 			if prev == "" {
 				return "", ErrInvalidString
 			}
-			count, _ := strconv.Atoi(string(char)) // guaranteed by checking "IsDigit"
+			count, _ := strconv.Atoi(string(char)) // guaranteed by checking "isDigit"
 			builder.WriteString(strings.Repeat(prev, count))
 			prev = ""
 			continue

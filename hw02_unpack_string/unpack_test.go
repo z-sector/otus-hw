@@ -28,6 +28,7 @@ func TestUnpack(t *testing.T) {
 		{input: `!@\2#\3$`, expected: "!@2#3$"},
 		{input: `世2a2界3b3`, expected: "世世aa界界界bbb"},
 		{input: `🌀0a1🍣2ф3`, expected: "a🍣🍣ффф"},
+		{input: `a১b১`, expected: "a১b১"}, // unicode.IsDigit(১) -> true
 		// uncomment if task with asterisk completed
 		{input: `qwe\4\5`, expected: `qwe45`},
 		{input: `qwe\45`, expected: `qwe44444`},
