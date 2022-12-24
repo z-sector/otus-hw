@@ -30,7 +30,6 @@ func calcWordsFreq(data []string) map[string]int {
 type itemQ struct {
 	word  string
 	count int
-	index int
 }
 
 type priorityQueue []*itemQ
@@ -50,14 +49,10 @@ func (pq *priorityQueue) Less(i, j int) bool {
 func (pq *priorityQueue) Swap(i, j int) {
 	pqV := *pq
 	pqV[i], pqV[j] = pqV[j], pqV[i]
-	pqV[i].index = i
-	pqV[j].index = j
 }
 
 func (pq *priorityQueue) Push(x any) {
-	n := len(*pq)
 	item := x.(*itemQ)
-	item.index = n
 	*pq = append(*pq, item)
 }
 
@@ -66,7 +61,6 @@ func (pq *priorityQueue) Pop() any {
 	n := len(old)
 	item := old[n-1]
 	old[n-1] = nil
-	item.index = -1
 	*pq = old[:n-1]
 	return item
 }
@@ -75,12 +69,13 @@ func top(s string, t int) []string {
 	splittedText := splitText(s)
 	counterMap := calcWordsFreq(splittedText)
 
-	pq := make(priorityQueue, 0, len(counterMap))
+	pq := make(priorityQueue, len(counterMap))
 	index := 0
 	for k, v := range counterMap {
-		heap.Push(&pq, &itemQ{word: k, count: v, index: index})
+		pq[index] = &itemQ{word: k, count: v}
 		index++
 	}
+	heap.Init(&pq)
 
 	if len(counterMap) <= t {
 		t = len(counterMap)
