@@ -1,46 +1,46 @@
 package hw04lrucache
 
-type List interface {
+type List[T any] interface {
 	Len() int
-	Front() *ListItem
-	Back() *ListItem
-	PushFront(v interface{}) *ListItem
-	PushBack(v interface{}) *ListItem
-	Remove(i *ListItem)
-	MoveToFront(i *ListItem)
+	Front() *ListItem[T]
+	Back() *ListItem[T]
+	PushFront(v T) *ListItem[T]
+	PushBack(v T) *ListItem[T]
+	Remove(i *ListItem[T])
+	MoveToFront(i *ListItem[T])
 }
 
-type ListItem struct {
-	Value interface{}
-	Next  *ListItem
-	Prev  *ListItem
-	List  *list
+type ListItem[T any] struct {
+	Value T
+	Next  *ListItem[T]
+	Prev  *ListItem[T]
+	List  *list[T]
 }
 
-type list struct {
+type list[T any] struct {
 	len  int
-	head *ListItem
-	tail *ListItem
+	head *ListItem[T]
+	tail *ListItem[T]
 }
 
-func NewList() List {
-	return new(list)
+func NewList[T any]() List[T] {
+	return new(list[T])
 }
 
-func (l *list) Len() int {
+func (l *list[T]) Len() int {
 	return l.len
 }
 
-func (l *list) Front() *ListItem {
+func (l *list[T]) Front() *ListItem[T] {
 	return l.head
 }
 
-func (l *list) Back() *ListItem {
+func (l *list[T]) Back() *ListItem[T] {
 	return l.tail
 }
 
-func (l *list) PushFront(v interface{}) *ListItem {
-	item := &ListItem{
+func (l *list[T]) PushFront(v T) *ListItem[T] {
+	item := &ListItem[T]{
 		Value: v,
 		Next:  l.head,
 		Prev:  nil,
@@ -59,8 +59,8 @@ func (l *list) PushFront(v interface{}) *ListItem {
 	return item
 }
 
-func (l *list) PushBack(v interface{}) *ListItem {
-	item := &ListItem{
+func (l *list[T]) PushBack(v T) *ListItem[T] {
+	item := &ListItem[T]{
 		Value: v,
 		Next:  nil,
 		Prev:  l.tail,
@@ -79,7 +79,7 @@ func (l *list) PushBack(v interface{}) *ListItem {
 	return item
 }
 
-func (l *list) Remove(i *ListItem) {
+func (l *list[T]) Remove(i *ListItem[T]) {
 	if i == nil || l.len == 0 {
 		return
 	}
@@ -105,7 +105,7 @@ func (l *list) Remove(i *ListItem) {
 	l.len--
 }
 
-func (l *list) MoveToFront(i *ListItem) {
+func (l *list[T]) MoveToFront(i *ListItem[T]) {
 	if i == nil || i == l.head {
 		return
 	}
@@ -130,4 +130,4 @@ func (l *list) MoveToFront(i *ListItem) {
 	l.len++
 }
 
-var _ List = (*list)(nil)
+var _ List[string] = (*list[string])(nil)
