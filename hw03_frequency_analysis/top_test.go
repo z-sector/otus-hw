@@ -1,13 +1,15 @@
 package hw03frequencyanalysis
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 // Change to true if needed.
-var taskWithAsteriskIsCompleted = false
+var taskWithAsteriskIsCompleted = true
 
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
@@ -46,6 +48,36 @@ var text = `Как видите, он  спускается  по  лестни�
 func TestTop10(t *testing.T) {
 	t.Run("no words in empty string", func(t *testing.T) {
 		require.Len(t, Top10(""), 0)
+	})
+
+	t.Run("no words in the string", func(t *testing.T) {
+		require.Len(t, Top10("! - ? , &:,?! []"), 0)
+	})
+
+	t.Run("one word", func(t *testing.T) {
+		s := " word "
+		expected := []string{"word"}
+		require.Equal(t, expected, Top10(s))
+	})
+
+	t.Run("limit 10 words", func(t *testing.T) {
+		builder := strings.Builder{}
+		for i := 0; i < 20; i++ {
+			builder.WriteString(strconv.Itoa(i) + " ")
+		}
+		require.Len(t, Top10(builder.String()), 10)
+	})
+
+	t.Run("dot or comma as separator", func(t *testing.T) {
+		s := "ccc,bbb.aaa"
+		expected := []string{"aaa", "bbb", "ccc"}
+		require.Equal(t, expected, Top10(s))
+	})
+
+	t.Run("repeat word", func(t *testing.T) {
+		s := "GO go go! go, go. (go)"
+		expected := []string{"go"}
+		require.Equal(t, expected, Top10(s))
 	})
 
 	t.Run("positive test", func(t *testing.T) {
