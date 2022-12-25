@@ -2,8 +2,6 @@ package hw04lrucache
 
 import "sync"
 
-type Key string
-
 type Cache[K comparable, V any] interface {
 	Set(key K, value V) bool
 	Get(key K) (V, bool)
@@ -38,6 +36,7 @@ func (l *lruCache[K, V]) Set(key K, value V) bool {
 	if ok {
 		item.Value.value = value
 		l.queue.MoveToFront(item)
+		l.queue.Remove(item)
 	} else {
 		l.items[key] = l.queue.PushFront(cacheItem[K, V]{key: key, value: value})
 	}
@@ -73,4 +72,4 @@ func (l *lruCache[K, V]) Clear() {
 	l.items = make(map[K]*ListItem[cacheItem[K, V]], l.capacity)
 }
 
-var _ Cache[Key, int] = (*lruCache[Key, int])(nil)
+var _ Cache[string, int] = (*lruCache[string, int])(nil)

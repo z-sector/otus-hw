@@ -11,7 +11,7 @@ import (
 
 func TestCache(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		c := NewCache[Key, int](10)
+		c := NewCache[string, int](10)
 
 		_, ok := c.Get("aaa")
 		require.False(t, ok)
@@ -21,7 +21,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("simple", func(t *testing.T) {
-		c := NewCache[Key, int](5)
+		c := NewCache[string, int](5)
 
 		wasInCache := c.Set("aaa", 100)
 		require.False(t, wasInCache)
@@ -49,8 +49,23 @@ func TestCache(t *testing.T) {
 		require.Empty(t, val)
 	})
 
+	t.Run("cache repeat key", func(t *testing.T) {
+		capacity := 3
+
+		c := NewCache[string, int](capacity)
+		cs := c.(*lruCache[string, int])
+
+		c.Set("aaa", 100)
+		c.Set("aaa", 200)
+		c.Set("bbb", 300)
+		c.Set("ccc", 400)
+
+		require.Equal(t, capacity, cs.queue.Len())
+		require.Equal(t, capacity, len(cs.items))
+	})
+
 	t.Run("purge logic", func(t *testing.T) {
-		c := NewCache[Key, int](2)
+		c := NewCache[string, int](2)
 
 		c.Set("aaa", 100)
 		c.Set("bbb", 200)
@@ -70,7 +85,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic considering permutation", func(t *testing.T) {
-		c := NewCache[Key, int](2)
+		c := NewCache[string, int](2)
 
 		c.Set("aaa", 100)
 		c.Set("bbb", 200)
@@ -95,7 +110,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("clear", func(t *testing.T) {
-		c := NewCache[Key, int](2)
+		c := NewCache[string, int](2)
 		c.Set("aaa", 100)
 		c.Clear()
 
@@ -108,21 +123,21 @@ func TestCache(t *testing.T) {
 func TestCacheMultithreading(t *testing.T) {
 	// t.Skip()
 
-	c := NewCache[Key, int](10)
+	c := NewCache[string, int](10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 1_000_000; i++ {
-			c.Set(Key(strconv.Itoa(i)), i)
+			c.Set(strconv.Itoa(i), i)
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 1_000_000; i++ {
-			c.Get(Key(strconv.Itoa(rand.Intn(1_000_000))))
+			c.Get(strconv.Itoa(rand.Intn(1_000_000)))
 		}
 	}()
 
