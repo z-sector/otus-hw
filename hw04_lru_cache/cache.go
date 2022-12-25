@@ -38,7 +38,6 @@ func (l *lruCache[K, V]) Set(key K, value V) bool {
 	if ok {
 		item.Value.value = value
 		l.queue.MoveToFront(item)
-		l.queue.Remove(item)
 	} else {
 		l.items[key] = l.queue.PushFront(cacheItem[K, V]{key: key, value: value})
 	}
