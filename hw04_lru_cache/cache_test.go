@@ -11,7 +11,7 @@ import (
 
 func TestCache(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		c := NewCache[int](10)
+		c := NewCache[Key, int](10)
 
 		_, ok := c.Get("aaa")
 		require.False(t, ok)
@@ -21,7 +21,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("simple", func(t *testing.T) {
-		c := NewCache[int](5)
+		c := NewCache[Key, int](5)
 
 		wasInCache := c.Set("aaa", 100)
 		require.False(t, wasInCache)
@@ -50,7 +50,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		c := NewCache[int](2)
+		c := NewCache[Key, int](2)
 
 		c.Set("aaa", 100)
 		c.Set("bbb", 200)
@@ -70,7 +70,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic considering permutation", func(t *testing.T) {
-		c := NewCache[int](2)
+		c := NewCache[Key, int](2)
 
 		c.Set("aaa", 100)
 		c.Set("bbb", 200)
@@ -95,7 +95,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("clear", func(t *testing.T) {
-		c := NewCache[int](2)
+		c := NewCache[Key, int](2)
 		c.Set("aaa", 100)
 		c.Clear()
 
@@ -108,7 +108,7 @@ func TestCache(t *testing.T) {
 func TestCacheMultithreading(t *testing.T) {
 	// t.Skip()
 
-	c := NewCache[int](10)
+	c := NewCache[Key, int](10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 

@@ -17,5 +17,5 @@ lint:
 .PHONY: test
 test:
 	@${RUN}
-	@go test -v -count=1
+	@go test -v -count=1 -race
 	@${DONE}

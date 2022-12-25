@@ -79,54 +79,54 @@ func (l *list[T]) PushBack(v T) *ListItem[T] {
 	return item
 }
 
-func (l *list[T]) Remove(i *ListItem[T]) {
-	if i == nil || l.len == 0 {
+func (l *list[T]) Remove(item *ListItem[T]) {
+	if item == nil || l.len == 0 {
 		return
 	}
-	if i.List == nil || i.List != l {
+	if item.List == nil || item.List != l {
 		return
 	}
 
-	if i == l.head {
-		l.head = i.Next
+	if item == l.head {
+		l.head = item.Next
 	}
-	if i == l.tail {
-		l.tail = i.Prev
-	}
-
-	if i.Next != nil {
-		i.Next.Prev = i.Prev
-	}
-	if i.Prev != nil {
-		i.Prev.Next = i.Next
+	if item == l.tail {
+		l.tail = item.Prev
 	}
 
-	i.List = nil
+	if item.Next != nil {
+		item.Next.Prev = item.Prev
+	}
+	if item.Prev != nil {
+		item.Prev.Next = item.Next
+	}
+
+	item.List = nil
 	l.len--
 }
 
-func (l *list[T]) MoveToFront(i *ListItem[T]) {
-	if i == nil || i == l.head {
+func (l *list[T]) MoveToFront(item *ListItem[T]) {
+	if item == nil || item == l.head {
 		return
 	}
-	if i.List == nil || i.List != l {
+	if item.List == nil || item.List != l {
 		return
 	}
 
-	l.Remove(i)
+	l.Remove(item)
 
 	if l.head != nil {
-		l.head.Prev = i
-		i.Next = l.head
+		l.head.Prev = item
+		item.Next = l.head
 	}
 
-	l.head = i
+	l.head = item
 
 	if l.tail == nil {
-		l.tail = i
+		l.tail = item
 	}
 
-	i.List = l
+	item.List = l
 	l.len++
 }
 

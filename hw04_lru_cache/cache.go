@@ -1,62 +1,62 @@
 package hw04lrucache
 
-import (
-	"sync"
-)
+import "sync"
 
 type Key string
 
-type Cache[T any] interface {
-	Set(key Key, value T) bool
-	Get(key Key) (T, bool)
+type Cache[K comparable, V any] interface {
+	Set(key K, value V) bool
+	Get(key K) (V, bool)
 	Clear()
 }
 
-type lruCache[T any] struct {
+type lruCache[K comparable, V any] struct {
 	mu       sync.RWMutex
 	capacity int
-	queue    List[cacheItem[T]]
-	items    map[Key]*ListItem[cacheItem[T]]
+	queue    List[cacheItem[K, V]]
+	items    map[K]*ListItem[cacheItem[K, V]]
 }
 
-type cacheItem[T any] struct {
-	key   Key
-	value T
+type cacheItem[K comparable, V any] struct {
+	key   K
+	value V
 }
 
-func NewCache[T any](capacity int) Cache[T] {
-	return &lruCache[T]{
+func NewCache[K comparable, V any](capacity int) Cache[K, V] {
+	return &lruCache[K, V]{
 		capacity: capacity,
-		queue:    NewList[cacheItem[T]](),
-		items:    make(map[Key]*ListItem[cacheItem[T]], capacity),
+		queue:    NewList[cacheItem[K, V]](),
+		items:    make(map[K]*ListItem[cacheItem[K, V]], capacity),
 	}
 }
 
-func (l *lruCache[T]) Set(key Key, value T) bool {
+func (l *lruCache[K, V]) Set(key K, value V) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	item, ok := l.items[key]
 	if ok {
+		item.Value.value = value
+		l.queue.MoveToFront(item)
 		l.queue.Remove(item)
+	} else {
+		l.items[key] = l.queue.PushFront(cacheItem[K, V]{key: key, value: value})
 	}
 
-	if l.queue.Len() == l.capacity {
+	if l.queue.Len() > l.capacity {
 		backItem := l.queue.Back()
 		l.queue.Remove(backItem)
 		delete(l.items, backItem.Value.key)
 	}
 
-	l.items[key] = l.queue.PushFront(cacheItem[T]{key: key, value: value})
-
 	return ok
 }
 
-func (l *lruCache[T]) Get(key Key) (T, bool) {
+func (l *lruCache[K, V]) Get(key K) (V, bool) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
-	var res T
+	var res V
 
 	item, ok := l.items[key]
 	if !ok {
@@ -66,12 +66,12 @@ func (l *lruCache[T]) Get(key Key) (T, bool) {
 	return item.Value.value, true
 }
 
-func (l *lruCache[T]) Clear() {
+func (l *lruCache[K, V]) Clear() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	l.queue = NewList[cacheItem[T]]()
-	l.items = make(map[Key]*ListItem[cacheItem[T]], l.capacity)
+	l.queue = NewList[cacheItem[K, V]]()
+	l.items = make(map[K]*ListItem[cacheItem[K, V]], l.capacity)
 }
 
-var _ Cache[int] = (*lruCache[int])(nil)
+var _ Cache[Key, int] = (*lruCache[Key, int])(nil)
