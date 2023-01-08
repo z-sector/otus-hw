@@ -24,7 +24,8 @@ func Run(tasks []Task, n, m int) error {
 
 	taskCh := make(chan Task)
 	wg := &sync.WaitGroup{}
-	errC := newErrCounter(m)
+	errC := &atomic.Int32{}
+	mInt32 := int32(m)
 
 	for i := 0; i < n; i++ {
 		wg.Add(1)
@@ -32,7 +33,7 @@ func Run(tasks []Task, n, m int) error {
 	}
 
 	for _, task := range tasks {
-		if errC.isExceeded() {
+		if errC.Load() >= mInt32 {
 			break
 		}
 		taskCh <- task
@@ -41,38 +42,18 @@ func Run(tasks []Task, n, m int) error {
 
 	wg.Wait()
 
-	if errC.count.Load() > 0 {
+	if errC.Load() > 0 {
 		return ErrErrorsLimitExceeded
 	}
 
 	return nil
 }
 
-type errCounter struct {
-	limit int32
-	count atomic.Int32
-}
-
-func (e *errCounter) inc() {
-	e.count.Add(1)
-}
-
-func (e *errCounter) isExceeded() bool {
-	return e.count.Load() >= e.limit
-}
-
-func newErrCounter(limit int) *errCounter {
-	return &errCounter{
-		limit: int32(limit),
-		count: atomic.Int32{},
-	}
-}
-
-func process(ch <-chan Task, errC *errCounter, wg *sync.WaitGroup) {
+func process(ch <-chan Task, errC *atomic.Int32, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for task := range ch {
 		if err := task(); err != nil {
-			errC.inc()
+			errC.Add(1)
 		}
 	}
 }

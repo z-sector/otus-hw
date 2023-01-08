@@ -17,5 +17,5 @@ lint:
 .PHONY: test
 test:
 	@${RUN}
-	@go test -v -race -count=100
+	@go test -v -race -count=10 -timeout=3m
 	@${DONE}

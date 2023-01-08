@@ -67,4 +67,83 @@ func TestRun(t *testing.T) {
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
+
+	t.Run("if limit of errors is 0", func(t *testing.T) {
+		tasksCount := 10
+		tasks := make([]Task, 0, tasksCount)
+
+		runTasksCount := &atomic.Int32{}
+
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				runTasksCount.Add(1)
+				return nil
+			})
+		}
+
+		err := Run(tasks, 10, 0)
+
+		require.True(t, errors.Is(err, ErrErrorsLimitExceeded))
+		require.Equal(t, int32(0), runTasksCount.Load())
+	})
+
+	t.Run("error count goroutines", func(t *testing.T) {
+		tasksCount := 10
+		tasks := make([]Task, 0, tasksCount)
+
+		runTasksCount := &atomic.Int32{}
+
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				runTasksCount.Add(1)
+				return nil
+			})
+		}
+
+		err := Run(tasks, 0, 1)
+
+		require.True(t, errors.Is(err, ErrErrorsCountGor))
+		require.Equal(t, int32(0), runTasksCount.Load())
+	})
+
+	t.Run("tasks without errors eventually", func(t *testing.T) {
+		tasksCount := 50
+		tasks := make([]Task, 0, tasksCount)
+
+		runTasksCount := &atomic.Int32{}
+		waitCh := make(chan struct{})
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				runTasksCount.Add(1)
+				<-waitCh
+				return nil
+			})
+		}
+
+		workersCount := 5
+		limit := 1
+		errCh := make(chan error)
+		go func() {
+			errCh <- Run(tasks, workersCount, limit)
+		}()
+
+		require.Eventuallyf(t, func() bool {
+			return runTasksCount.Load() == int32(workersCount)
+		}, time.Second, time.Millisecond, "The number of running goroutines does not match, expected %d", workersCount)
+
+		close(waitCh)
+
+		var err error
+		require.Eventually(t, func() bool {
+			select {
+			case err = <-errCh:
+				return true
+			default:
+				return false
+			}
+		}, time.Second, time.Millisecond)
+
+		require.NoError(t, err)
+		require.Equal(t, int32(tasksCount), runTasksCount.Load())
+	})
 }
