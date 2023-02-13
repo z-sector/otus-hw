@@ -2,6 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"log"
+)
+
+const (
+	flagNameFrom   = "from"
+	flagNameTo     = "to"
+	flagNameLimit  = "limit"
+	flagNameOffset = "offset"
 )
 
 var (
@@ -10,13 +19,47 @@ var (
 )
 
 func init() {
-	flag.StringVar(&from, "from", "", "file to read from")
-	flag.StringVar(&to, "to", "", "file to write to")
-	flag.Int64Var(&limit, "limit", 0, "limit of bytes to copy")
-	flag.Int64Var(&offset, "offset", 0, "offset in input file")
+	flag.StringVar(&from, flagNameFrom, "", "file to read from")
+	flag.StringVar(&to, flagNameTo, "", "file to write to")
+	flag.Int64Var(&limit, flagNameLimit, 0, "limit of bytes to copy")
+	flag.Int64Var(&offset, flagNameOffset, 0, "offset in input file")
 }
 
 func main() {
 	flag.Parse()
-	// Place your code here.
+	if err := validateFlags(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := Copy(from, to, offset, limit); err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+}
+
+func validateFlags() error {
+	isFrom := checkFlag(flagNameFrom)
+	isTo := checkFlag(flagNameTo)
+
+	if isFrom && isTo {
+		return nil
+	}
+
+	msg := "please provide a filename to "
+	if isFrom && !isTo {
+		return fmt.Errorf(msg + "copy into")
+	}
+	if isTo && !isFrom {
+		return fmt.Errorf(msg + "copy from")
+	}
+	return fmt.Errorf(msg + "copy from and copy into")
+}
+
+func checkFlag(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }
