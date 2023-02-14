@@ -14,8 +14,8 @@ var (
 	ErrNegativeOffset        = errors.New("offset cannot be negative")
 	ErrNegativeLimit         = errors.New("limit cannot be negative")
 	ErrFileIsDirectory       = errors.New("file is a directory")
-	ErrFromPathIsEmpty       = errors.New("from path should be don't empty")
-	ErrToPathIsEmpty         = errors.New("to path should be don't empty")
+	ErrFromPathIsEmpty       = errors.New("from path should be not empty")
+	ErrToPathIsEmpty         = errors.New("to path should be not empty")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) (err error) {
@@ -98,8 +98,8 @@ func copyCont(source io.Reader, dest io.Writer, limit int64) error {
 	var total int64
 	var prevProgress int
 
-	for {
-		exit := false
+	exit := false
+	for !exit {
 		bytesCount, err := source.Read(buf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -123,14 +123,10 @@ func copyCont(source io.Reader, dest io.Writer, limit int64) error {
 			}
 		}
 
-		progress := int(float32(total) / float32(limit) * 100)
+		progress := int(float64(total) / float64(limit) * 100)
 		if progress > prevProgress {
 			fmt.Printf("%d%%...", progress)
 			prevProgress = progress
-		}
-
-		if exit {
-			break
 		}
 	}
 

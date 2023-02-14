@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 )
 
@@ -27,39 +26,12 @@ func init() {
 
 func main() {
 	flag.Parse()
-	if err := validateFlags(); err != nil {
-		log.Fatal(err)
+	if from == "" || to == "" {
+		flag.Usage()
+		log.Fatal("arguments -from and -to are required")
 	}
 
 	if err := Copy(from, to, offset, limit); err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-}
-
-func validateFlags() error {
-	isFrom := checkFlag(flagNameFrom)
-	isTo := checkFlag(flagNameTo)
-
-	if isFrom && isTo {
-		return nil
-	}
-
-	msg := "please provide a filename to "
-	if isFrom && !isTo {
-		return fmt.Errorf(msg + "copy into")
-	}
-	if isTo && !isFrom {
-		return fmt.Errorf(msg + "copy from")
-	}
-	return fmt.Errorf(msg + "copy from and copy into")
-}
-
-func checkFlag(name string) bool {
-	found := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
-		}
-	})
-	return found
 }
