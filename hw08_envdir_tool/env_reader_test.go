@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,8 +29,11 @@ func TestReadDir(t *testing.T) {
 	})
 
 	t.Run("empty dir", func(t *testing.T) {
+		dir, err := os.MkdirTemp("./testdata", "empty_dir_*")
+		require.NoError(t, err)
+
 		expected := Environment{}
-		env, err := ReadDir("./testdata/empty_dir")
+		env, err := ReadDir(dir)
 		require.NoError(t, err)
 		require.Equal(t, expected, env)
 	})
