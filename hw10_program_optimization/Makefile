@@ -29,13 +29,13 @@ benchstat: bench
 .PHONY: test_bench
 test_bench:
 	@${RUN}
-	@go test -v -count=1 -timeout=30s -tags=bench,jsoniter .
+	@go test -v -count=1 -timeout=30s -tags=bench .
 	@${DONE}
 
 .PHONY: test_common
 test_common:
 	@${RUN}
-	@go test -v -count=1 -timeout=30s -tags=jsoniter .
+	@go test -v -count=1 -timeout=30s .
 	@${DONE}
 
 .PHONY: test
