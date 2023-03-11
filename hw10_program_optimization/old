@@ -1,0 +1,11 @@
+goos: linux
+goarch: amd64
+pkg: github.com/z-sector/otus-hw/hw10_program_optimization
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGetDomainStat-8   	      70	 162371066 ns/op	136045118 B/op	 1700090 allocs/op
+BenchmarkGetDomainStat-8   	      66	 157032779 ns/op	136045102 B/op	 1700090 allocs/op
+BenchmarkGetDomainStat-8   	      66	 155481523 ns/op	136045101 B/op	 1700090 allocs/op
+BenchmarkGetDomainStat-8   	      67	 155675371 ns/op	136045107 B/op	 1700090 allocs/op
+BenchmarkGetDomainStat-8   	      72	 160942909 ns/op	136045106 B/op	 1700090 allocs/op
+PASS
+ok  	github.com/z-sector/otus-hw/hw10_program_optimization	58.452s
