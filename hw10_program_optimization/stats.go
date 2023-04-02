@@ -1,67 +1,62 @@
 package hw10programoptimization
 
 import (
-	"encoding/json"
-	"fmt"
+	"bufio"
+	"errors"
 	"io"
-	"io/ioutil"
-	"regexp"
 	"strings"
+
+	"github.com/z-sector/otus-hw/hw10_program_optimization/internal"
 )
 
 type User struct {
-	ID       int
-	Name     string
-	Username string
-	Email    string
-	Phone    string
-	Password string
-	Address  string
+	Email string
 }
 
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
-	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
-	}
-	return countDomains(u, domain)
-}
-
-type users [100_000]User
-
-func getUsers(r io.Reader) (result users, err error) {
-	content, err := ioutil.ReadAll(r)
-	if err != nil {
-		return
-	}
-
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
-		}
-		result[i] = user
-	}
-	return
-}
-
-func countDomains(u users, domain string) (DomainStat, error) {
+	domainWithDot := "." + domain
+	reader := bufio.NewReader(r)
 	result := make(DomainStat)
+	user := new(User)
 
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
+	for shouldExit := false; !shouldExit; {
+		line, err := readLine(reader)
 		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				return nil, err
+			}
+
+			if len(line) == 0 {
+				break
+			}
+			shouldExit = true
+		}
+
+		if err := internal.Unmarshal(line, user); err != nil {
 			return nil, err
 		}
 
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
+		if strings.HasSuffix(user.Email, domainWithDot) {
+			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]++
 		}
 	}
+
 	return result, nil
+}
+
+func readLine(r *bufio.Reader) ([]byte, error) {
+	var (
+		isPrefix = true
+		err      error
+		res, ln  []byte
+	)
+
+	for isPrefix && err == nil {
+		ln, isPrefix, err = r.ReadLine()
+		res = append(res, ln...)
+	}
+
+	return res, err
 }
