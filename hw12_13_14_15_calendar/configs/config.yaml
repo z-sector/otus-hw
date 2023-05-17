@@ -1,0 +1,16 @@
+logger:
+  level: "debug"
+  json: false
+
+http:
+  host: 0.0.0.0
+  port: 7000
+
+storage:
+  type: sql
+  db:
+    host: localhost
+    port: 15432
+    database: calendar
+    username: example
+    password: example

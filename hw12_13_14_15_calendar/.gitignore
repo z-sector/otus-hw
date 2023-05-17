@@ -1,2 +1,5 @@
 logs/
 bin/
+
+docker_prune.sh
+fix_ownership.sh
