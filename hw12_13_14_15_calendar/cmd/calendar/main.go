@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"flag"
-	"os"
+	"fmt"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/configs"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/delivery/http"
+	memorystorage "github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/usecase"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/httpserver"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/postgres"
 )
 
 var configFile string
@@ -28,34 +31,58 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
-	logg := logger.New(config.Logger.Level)
+	log := logger.GetDefaultLog()
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
+	cfg, err := configs.NewConfig(configFile)
+	if err != nil {
+		log.Fatal("incorrect config file", err)
+	}
+	log.Info(fmt.Sprintf("%v", cfg))
 
-	server := internalhttp.NewServer(logg, calendar)
+	appLogg, err := logger.InitLog(cfg.Logger.Level, cfg.Logger.JSON)
+	if err != nil {
+		log.Fatal("incorrect init log", err)
+	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	var eRepo usecase.EventRepo
+	var iRepo usecase.HealthCheckRepo
+	if cfg.Storage.Type == configs.StorageSQL {
+		pg, err := postgres.NewPgByURL(appLogg, cfg.Storage.DB.DSN())
+		if err != nil {
+			appLogg.Fatal("app - Run - postgres.New", err)
+		}
+		defer pg.Close()
+
+		pgStorage := sqlstorage.NewPgRepo(pg, appLogg)
+		eRepo, iRepo = pgStorage, pgStorage
+	} else {
+		memStorage := memorystorage.NewMemoryStorage(appLogg)
+		eRepo, iRepo = memStorage, memStorage
+	}
+
+	handler := http.NewHandler(
+		appLogg,
+		usecase.NewEventUC(appLogg, eRepo),
+		usecase.NewInternalUC(appLogg, iRepo),
+	)
+
+	appLogg.Info("calendar is running...")
+	server := httpserver.NewHTTPServer(handler, httpserver.Addr(cfg.HTTP.Host, cfg.HTTP.Port))
+	server.Run()
+	appLogg.Info(fmt.Sprintf("HTTP server listen and serve %s", server.GetAddr()))
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	go func() {
-		<-ctx.Done()
+	select {
+	case <-ctx.Done():
+		appLogg.Info("interrupt signal received")
+	case err = <-server.Notify():
+		appLogg.Error("server error", err)
+	}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
-		}
-	}()
-
-	logg.Info("calendar is running...")
-
-	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
-		cancel()
-		os.Exit(1) //nolint:gocritic
+	err = server.Shutdown()
+	if err != nil {
+		appLogg.Error("failed to shutdown server", err)
 	}
 }
