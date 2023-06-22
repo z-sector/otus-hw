@@ -1,4 +1,4 @@
-package httpserver
+package hserver
 
 import (
 	"context"
@@ -13,13 +13,13 @@ const (
 	_defaultShutdownTimeout = 5 * time.Second
 )
 
-type Server struct {
+type AppHTTPServer struct {
 	server          *http.Server
 	notify          chan error
 	shutdownTimeout time.Duration
 }
 
-func NewHTTPServer(handler http.Handler, opts ...Option) *Server {
+func NewHTTPServer(handler http.Handler, opts ...Option) *AppHTTPServer {
 	httpServer := &http.Server{
 		Handler:      handler,
 		ReadTimeout:  _defaultReadTimeout,
@@ -27,7 +27,7 @@ func NewHTTPServer(handler http.Handler, opts ...Option) *Server {
 		Addr:         _defaultAddr,
 	}
 
-	s := &Server{
+	s := &AppHTTPServer{
 		server:          httpServer,
 		notify:          make(chan error, 1),
 		shutdownTimeout: _defaultShutdownTimeout,
@@ -40,22 +40,22 @@ func NewHTTPServer(handler http.Handler, opts ...Option) *Server {
 	return s
 }
 
-func (s *Server) GetAddr() string {
+func (s *AppHTTPServer) GetAddr() string {
 	return s.server.Addr
 }
 
-func (s *Server) Run() {
+func (s *AppHTTPServer) Run() {
 	go func() {
 		s.notify <- s.server.ListenAndServe()
 		close(s.notify)
 	}()
 }
 
-func (s *Server) Notify() <-chan error {
+func (s *AppHTTPServer) Notify() <-chan error {
 	return s.notify
 }
 
-func (s *Server) Shutdown() error {
+func (s *AppHTTPServer) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 

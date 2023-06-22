@@ -21,14 +21,14 @@ services:
 #      timeout: 5s
 #      retries: 3
 #
-#  migrator:
-#    build:
-#      context: ../
-#      dockerfile: ./build/migrate/Dockerfile
-#    environment:
-#      PG_URL: postgres://${DB_USER}:${DB_PASSWORD}@pg:${DB_PORT}/${DB_NAME}?sslmode=disable
-#    volumes:
-#      - ../migrations:/migrations
+  migrator:
+    build:
+      context: ../
+      dockerfile: ./build/migrate/Dockerfile
+    environment:
+      PG_URL: postgres://${DB_USER}:${DB_PASSWORD}@pg:${DB_PORT}/${DB_NAME}?sslmode=disable
+    volumes:
+      - ../migrations:/migrations
 #    depends_on:
 #      pg:
 #        condition: service_healthy

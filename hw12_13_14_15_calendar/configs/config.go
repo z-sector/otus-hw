@@ -13,12 +13,12 @@ const envPrefix = "APP"
 
 type Config struct {
 	Logger  LoggerConf
-	HTTP    HTTPConf
+	Server  ServerConf
 	Storage StorageConf
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Config{Logger:%s HTTP:%s Storage:%s}", c.Logger, c.HTTP, c.Storage)
+	return fmt.Sprintf("Config{Logger:%s Server:%s Storage:%s}", c.Logger, c.Server, c.Storage)
 }
 
 func NewConfig(cfgFile string) (Config, error) {

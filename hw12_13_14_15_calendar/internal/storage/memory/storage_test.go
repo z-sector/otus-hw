@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/dto"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
 )
 
@@ -48,24 +49,21 @@ func (s *memoryStorageTestSuite) TestCreate() {
 	ctx := context.Background()
 	s.Run("success", func() {
 		newEvent := makeTestEvent(time.Now().UTC())
-		newEvent.ID = uuid.Nil
-
-		err := s.repo.Create(ctx, &newEvent)
-		s.Require().NoError(err)
-		s.Require().True(newEvent.ID != uuid.Nil)
-
-		_, ok := s.repo.events[newEvent.ID]
-		s.True(ok)
-	})
-
-	s.Run("error", func() {
-		for _, e := range s.events {
-			newEvent := makeTestEvent(time.Now().UTC())
-			newEvent.ID = e.ID
-
-			err := s.repo.Create(ctx, &newEvent)
-			s.Require().ErrorIs(err, internal.ErrStorageAlreadyExists)
+		data := dto.CreateEventDTO{
+			Title:            newEvent.Title,
+			BeginTime:        newEvent.BeginTime,
+			EndTime:          newEvent.EndTime,
+			Description:      newEvent.Description,
+			UserID:           newEvent.UserID,
+			NotificationTime: newEvent.NotificationTime,
 		}
+
+		event, err := s.repo.Create(ctx, data)
+		s.Require().NoError(err)
+		s.Require().True(event.ID != uuid.Nil)
+
+		_, ok := s.repo.events[event.ID]
+		s.True(ok)
 	})
 }
 
@@ -77,7 +75,7 @@ func (s *memoryStorageTestSuite) TestUpdate() {
 		changedEvent.ID = eventID
 		changedEvent.Title = "changed"
 
-		err := s.repo.Update(ctx, changedEvent)
+		err := s.repo.Update(ctx, &changedEvent)
 		s.Require().NoError(err)
 
 		event, ok := s.repo.events[changedEvent.ID]
@@ -87,7 +85,7 @@ func (s *memoryStorageTestSuite) TestUpdate() {
 
 	s.Run("error", func() {
 		newEvent := makeTestEvent(time.Now().UTC())
-		err := s.repo.Update(ctx, newEvent)
+		err := s.repo.Update(ctx, &newEvent)
 		s.Require().ErrorIs(err, internal.ErrStorageNotFound)
 	})
 }
@@ -164,19 +162,21 @@ func TestMemoryStorage(t *testing.T) {
 	suite.Run(t, new(memoryStorageTestSuite))
 }
 
-func TestConcurrencyCreate(t *testing.T) {
+func TestConcurrencyUpdate(t *testing.T) {
 	ctx := context.Background()
 	storage := NewMemoryStorage(logger.Nop())
 
-	event := internal.Event{
-		ID:               uuid.New(),
+	notifTime := time.Now().UTC()
+	data := dto.CreateEventDTO{
 		Title:            uuid.New().String(),
 		BeginTime:        time.Now().UTC(),
 		EndTime:          time.Now().UTC(),
 		Description:      uuid.New().String(),
 		UserID:           uuid.New(),
-		NotificationTime: time.Now().UTC(),
+		NotificationTime: &notifTime,
 	}
+	event, err := storage.Create(ctx, data)
+	require.NoError(t, err)
 
 	waitCh := make(chan struct{})
 	var (
@@ -191,14 +191,14 @@ func TestConcurrencyCreate(t *testing.T) {
 		go func(e internal.Event) {
 			defer wg.Done()
 			<-waitCh
-			err := storage.Create(ctx, &e)
+			err := storage.Update(ctx, &e)
 
 			if err == nil {
 				successC.Add(1)
 				return
 			}
 
-			if errors.Is(err, internal.ErrStorageAlreadyExists) {
+			if errors.Is(err, internal.ErrStorageConflict) {
 				errorC.Add(1)
 			}
 		}(event)
@@ -221,7 +221,8 @@ func makeTestEvent(beginTime time.Time) internal.Event {
 		EndTime:          endTime,
 		Description:      fmt.Sprintf("Description: %s", eventID),
 		UserID:           uuid.New(),
-		NotificationTime: notificationTime,
+		NotificationTime: &notificationTime,
+		Version:          1,
 	}
 }
 

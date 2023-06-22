@@ -20,6 +20,8 @@ func init() {
 	}
 }
 
+const LogRIDKey = "request_id"
+
 type AppLog struct {
 	Base zerolog.Logger
 }
@@ -55,7 +57,7 @@ func (l AppLog) Panic(msg string, err error) {
 func (l AppLog) WithReqID(ctx context.Context) AppLog {
 	reqID := requestid.CtxGetRequestID(ctx)
 	if reqID != "" {
-		return AppLog{l.Base.With().Str("request_id", reqID).Logger()}
+		return AppLog{l.Base.With().Str(LogRIDKey, reqID).Logger()}
 	}
 	return l
 }

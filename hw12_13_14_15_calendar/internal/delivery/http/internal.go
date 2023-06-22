@@ -1,24 +1,20 @@
 package http
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/delivery"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
 )
 
-type HealthCheckUCI interface {
-	Ping(ctx context.Context) error
-}
-
 type InternalHTTPHandler struct {
 	log logger.AppLog
-	uc  HealthCheckUCI
+	uc  delivery.HealthCheckUCI
 }
 
-func NewInternalHTTPHandler(log logger.AppLog, uc HealthCheckUCI) InternalHTTPHandler {
+func NewInternalHTTPHandler(log logger.AppLog, uc delivery.HealthCheckUCI) InternalHTTPHandler {
 	return InternalHTTPHandler{log: log, uc: uc}
 }
 

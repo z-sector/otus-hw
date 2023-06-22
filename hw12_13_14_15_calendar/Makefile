@@ -26,6 +26,7 @@ version: build
 
 test:
 	#go test -race ./internal/... ./pkg/...
+	#go test -v -race -count=1 -run TestEventValidate ./internal/
 	go test -v -race -count=1 ./...
 
 install-lint-deps:
@@ -39,7 +40,7 @@ dc-down:
 	docker compose $(DCF) down
 
 dc-up: dc-down
-	docker compose $(DCF) up --build --detach
+	docker compose $(DCF) up --build --detach pg
 
 dc-down-prune:
 	docker compose $(DCF) down -v --rmi all
@@ -47,4 +48,10 @@ dc-down-prune:
 makemigrations: ## e.g `make makemigrations name=init`
 	docker compose $(DCF) run --rm --no-deps migrator migrate create -ext sql -dir /migrations $(name)
 
-.PHONY: build run build-img run-img version test lint dc-up dc-down dc-down-prune makemigrations
+migrate:
+	docker compose $(DCF) run --rm --no-deps migrator
+
+generate:
+	go generate ./...
+
+.PHONY: build run build-img run-img version test lint dc-up dc-down dc-down-prune makemigrations migrate generate

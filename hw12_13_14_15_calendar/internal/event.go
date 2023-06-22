@@ -13,5 +13,6 @@ type Event struct {
 	EndTime          time.Time
 	Description      string
 	UserID           uuid.UUID
-	NotificationTime time.Time
+	NotificationTime *time.Time
+	Version          int32
 }
