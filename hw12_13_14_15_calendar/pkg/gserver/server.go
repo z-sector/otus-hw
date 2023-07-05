@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	_defaultAddr            = ":8000"
-	_defaultShutdownTimeout = 20 * time.Second
+	defaultAddr            = ":8000"
+	defaultShutdownTimeout = 20 * time.Second
 )
 
 type AppGRPCServer struct {
@@ -24,8 +24,8 @@ func NewGrpcServer(grpcServer *grpc.Server, opts ...Option) *AppGRPCServer {
 	s := &AppGRPCServer{
 		GRPC:            grpcServer,
 		notify:          make(chan error, 1),
-		shutdownTimeout: _defaultShutdownTimeout,
-		addr:            _defaultAddr,
+		shutdownTimeout: defaultShutdownTimeout,
+		addr:            defaultAddr,
 	}
 
 	for _, opt := range opts {
