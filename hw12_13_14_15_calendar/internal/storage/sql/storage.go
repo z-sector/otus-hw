@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/dto"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/usecase"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/postgres"
@@ -32,36 +33,36 @@ func (p *PgRepo) Ping(ctx context.Context) error {
 	return p.Pool.Ping(ctx)
 }
 
-func (p *PgRepo) Create(ctx context.Context, e *internal.Event) error {
-	if e.ID == uuid.Nil {
-		e.ID = uuid.New()
-	} else {
-		exists, err := p.existsByID(ctx, e.ID)
-		if err != nil {
-			return fmt.Errorf("PgRepo - Create - p.existsByID: %w", err)
-		}
-		if exists {
-			return fmt.Errorf("%w with id %s", internal.ErrStorageAlreadyExists, e.ID)
-		}
+func (p *PgRepo) Create(ctx context.Context, data dto.CreateEventDTO) (internal.Event, error) {
+	e := internal.Event{
+		ID:               uuid.New(),
+		Title:            data.Title,
+		BeginTime:        data.BeginTime,
+		EndTime:          data.EndTime,
+		Description:      data.Description,
+		UserID:           data.UserID,
+		NotificationTime: data.NotificationTime,
+		Version:          1,
 	}
 
 	sql, args, err := p.Builder.
 		Insert(p.tableName).
-		Columns("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time").
-		Values(e.ID, e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime).
+		Columns("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version").
+		Values(e.ID, e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version).
 		ToSql()
 	if err != nil {
-		return fmt.Errorf("PgRepo - Create - r.Builder: %w", err)
+		return internal.Event{}, fmt.Errorf("PgRepo - Create - r.Builder: %w", err)
 	}
 
 	_, err = p.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("PgRepo - Create - r.Pool.Exec: %w", err)
+		return internal.Event{}, fmt.Errorf("PgRepo - Create - r.Pool.Exec: %w", err)
 	}
-	return nil
+	return e, nil
 }
 
-func (p *PgRepo) Update(ctx context.Context, e internal.Event) error {
+func (p *PgRepo) Update(ctx context.Context, e *internal.Event) error {
+	e.Version++
 	sql, args, err := p.Builder.
 		Update(p.tableName).
 		Set("title", e.Title).
@@ -70,16 +71,21 @@ func (p *PgRepo) Update(ctx context.Context, e internal.Event) error {
 		Set("description", e.Description).
 		Set("user_id", e.UserID).
 		Set("notification_time", e.NotificationTime).
-		Where(squirrel.Eq{"id": e.ID}).
+		Set("version", e.Version).
+		Where(squirrel.Eq{"id": e.ID, "version": e.Version - 1}).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("PgRepo - Update - r.Builder: %w", err)
 	}
 
-	_, err = p.Pool.Exec(ctx, sql, args...)
+	c, err := p.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("PgRepo - Update - r.Pool.Exec: %w", err)
 	}
+	if c.RowsAffected() != 1 {
+		return internal.ErrStorageConflict
+	}
+
 	return nil
 }
 
@@ -89,16 +95,20 @@ func (p *PgRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 		return fmt.Errorf("PgRepo - Delete - r.Builder: %w", err)
 	}
 
-	_, err = p.Pool.Exec(ctx, sql, args...)
+	c, err := p.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("PgRepo - Delete - r.Pool.Exec: %w", err)
 	}
+	if c.RowsAffected() != 1 {
+		return internal.ErrStorageNotFound
+	}
+
 	return nil
 }
 
 func (p *PgRepo) GetByID(ctx context.Context, ID uuid.UUID) (internal.Event, error) {
 	sql, args, err := p.Builder.
-		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time").
+		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version").
 		From(p.tableName).
 		Where(squirrel.Eq{"id": ID}).
 		ToSql()
@@ -115,6 +125,7 @@ func (p *PgRepo) GetByID(ctx context.Context, ID uuid.UUID) (internal.Event, err
 		&e.Description,
 		&e.UserID,
 		&e.NotificationTime,
+		&e.Version,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -131,8 +142,8 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 		squirrel.Lt{"begin_time": to},
 	}
 	sql, args, err := p.Builder.
-		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time").
-		From(p.tableName).Where(filter).ToSql()
+		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version").
+		From(p.tableName).Where(filter).OrderBy("begin_time").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("PgRepo - GetByPeriod - r.Builder: %w", err)
 	}
@@ -155,6 +166,7 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 			&e.Description,
 			&e.UserID,
 			&e.NotificationTime,
+			&e.Version,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("PgRepo - GetByPeriod - rows.Scan: %w", err)
@@ -169,7 +181,7 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 	return entities, nil
 }
 
-func (p *PgRepo) existsByID(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (p *PgRepo) existsByID(ctx context.Context, ID uuid.UUID) (bool, error) { // nolint: unused
 	var exists bool
 
 	sql, args, err := p.Builder.

@@ -2,7 +2,6 @@ package memorystorage
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/dto"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/usecase"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
 )
@@ -33,30 +33,41 @@ func NewMemoryStorage(log logger.AppLog) *MemoryRepo {
 	}
 }
 
-func (m *MemoryRepo) Create(_ context.Context, e *internal.Event) error {
+func (m *MemoryRepo) Create(_ context.Context, data dto.CreateEventDTO) (internal.Event, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if e.ID == uuid.Nil {
-		e.ID = uuid.New()
-	} else if m.existsByID(e.ID) {
-		return fmt.Errorf("%w with id %s", internal.ErrStorageAlreadyExists, e.ID)
+	event := internal.Event{
+		ID:               uuid.New(),
+		Title:            data.Title,
+		BeginTime:        data.BeginTime,
+		EndTime:          data.EndTime,
+		Description:      data.Description,
+		UserID:           data.UserID,
+		NotificationTime: data.NotificationTime,
+		Version:          1,
 	}
 
-	m.events[e.ID] = *e
+	m.events[event.ID] = event
 
-	return nil
+	return event, nil
 }
 
-func (m *MemoryRepo) Update(_ context.Context, e internal.Event) error {
+func (m *MemoryRepo) Update(ctx context.Context, e *internal.Event) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if !m.existsByID(e.ID) {
+	eLast, ok := m.events[e.ID]
+	if !ok {
 		return internal.ErrStorageNotFound
 	}
 
-	m.events[e.ID] = e
+	if eLast.Version != e.Version {
+		return internal.ErrStorageConflict
+	}
+	e.Version++
+
+	m.events[e.ID] = *e
 
 	return nil
 }

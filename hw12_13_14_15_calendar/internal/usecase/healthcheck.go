@@ -3,11 +3,11 @@ package usecase
 import (
 	"context"
 
-	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/delivery/http"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/internal/delivery"
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
 )
 
-var _ http.HealthCheckUCI = (*InternalUC)(nil)
+var _ delivery.HealthCheckUCI = (*InternalUC)(nil)
 
 type HealthCheckRepo interface {
 	Ping(ctx context.Context) error

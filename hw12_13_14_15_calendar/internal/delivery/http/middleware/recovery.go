@@ -7,15 +7,13 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"runtime"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
+	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/stack"
 )
-
-const defaultStackSize = 4 << 10 // 4 KB
 
 func Recovery(log logger.AppLog) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -45,7 +43,7 @@ func recovery(log logger.AppLog) gin.HandlerFunc {
 				if log.IsDebugging() {
 					ev.Str("request", headersToStr)
 				}
-				ev.Msg(fmt.Sprintf("[Recovery from panic]:\n%s", stack()))
+				ev.Msg(fmt.Sprintf("[Recovery from panic]:\n%s", stack.GetStack()))
 
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}
@@ -78,14 +76,4 @@ func getHeadersStr(req *http.Request) string {
 		}
 	}
 	return strings.Join(headers, "    ")
-}
-
-func stack() []byte {
-	var stackBytes []byte
-	var length int
-
-	stackBytes = make([]byte, defaultStackSize)
-	length = runtime.Stack(stackBytes, false)
-	stackBytes = stackBytes[:length]
-	return stackBytes
 }

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+message PingReq {}
+
+message PingResp {
+  bool ok = 1;
+}
+
+service InternalService {
+  rpc Ping(PingReq) returns (PingResp) {}
+}

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./pb";
+
+message CreateEventReq {
+  string title = 1;
+  google.protobuf.Timestamp begin_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  string description = 4;
+  string user_id = 5;
+  google.protobuf.Timestamp notification_time = 6;
+}
+
+message UpdateEventReq {
+  string id = 1;
+  string title = 2;
+  google.protobuf.Timestamp begin_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  string description = 5;
+  string user_id = 6;
+  google.protobuf.Timestamp notification_time = 7;
+  int32 last_version = 8;
+}
+
+message EventIDReq {
+  string id = 1;
+}
+
+message DeleteEventResp {
+  bool ok = 1;
+}
+
+message EventPeriodReq {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2;
+}
+
+message Event {
+  string id = 1;
+  string title = 2;
+  google.protobuf.Timestamp begin_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  string description = 5;
+  string user_id = 6;
+  google.protobuf.Timestamp notification_time = 7;
+  int32 version = 8;
+}
+
+message EventList {
+  repeated Event items = 1;
+}
+
+service EventService {
+  rpc CreateEvent(CreateEventReq) returns (Event) {}
+  rpc UpdateEvent(UpdateEventReq) returns (Event) {}
+  rpc DeleteEvent(EventIDReq) returns (DeleteEventResp) {}
+  rpc GetByID(EventIDReq) returns (Event) {}
+  rpc GetByPeriod(EventPeriodReq) returns (EventList) {}
+}
