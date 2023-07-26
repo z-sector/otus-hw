@@ -58,7 +58,7 @@ func (m *MemoryRepo) Create(_ context.Context, data dto.CreateEventDTO) (interna
 	return event, nil
 }
 
-func (m *MemoryRepo) Update(ctx context.Context, e *internal.Event) error {
+func (m *MemoryRepo) Update(_ context.Context, e *internal.Event) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

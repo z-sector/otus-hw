@@ -52,8 +52,16 @@ func (p *PgRepo) Create(ctx context.Context, data dto.CreateEventDTO) (internal.
 
 	sql, args, err := p.Builder.
 		Insert(p.tableName).
-		Columns("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status").
-		Values(e.ID, e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version, e.NotifyStatus).
+		Columns(
+			"id", "title", "begin_time", "end_time",
+			"description", "user_id", "notification_time",
+			"version", "notify_status",
+		).
+		Values(
+			e.ID, e.Title, e.BeginTime, e.EndTime,
+			e.Description, e.UserID, e.NotificationTime,
+			e.Version, e.NotifyStatus,
+		).
 		ToSql()
 	if err != nil {
 		return internal.Event{}, fmt.Errorf("PgRepo - Create - r.Builder: %w", err)
@@ -149,7 +157,9 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 		squirrel.Lt{"begin_time": to},
 	}
 	sql, args, err := p.Builder.
-		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status").
+		Select(
+			"id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status",
+		).
 		From(p.tableName).Where(filter).OrderBy("begin_time").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("PgRepo - GetByPeriod - r.Builder: %w", err)
@@ -211,7 +221,9 @@ func (p *PgRepo) GetEventsForNotify(ctx context.Context, time time.Time) ([]inte
 		squirrel.Eq{"notify_status": internal.NotSentStatus},
 	}
 	sql, args, err := p.Builder.
-		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status").
+		Select(
+			"id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status",
+		).
 		From(p.tableName).Where(filter).OrderBy("notification_time").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("PgRepo - GetEventsForNotify - r.Builder: %w", err)

@@ -56,11 +56,7 @@ func ParseConfig(cfgFile string, cfg any) error {
 		return fmt.Errorf("unable to decode into config struct: %w", err)
 	}
 
-	if err := validateConfig(cfg); err != nil {
-		return err
-	}
-
-	return nil
+	return validateConfig(cfg)
 }
 
 func validateConfig(cfg any) error {

@@ -56,17 +56,7 @@ func main() {
 	}()
 
 	handler := getHandler(log, repo, clientAMQP)
-
-	s := gocron.NewScheduler(time.UTC)
-	_, err := s.Every(cfg.Schedule.DeleteEventsCronbeat).Do(
-		handler.DeleteOldEvents, cfg.Schedule.DeleteEventsAgeDay,
-	)
-	if err != nil {
-		log.Fatal("failed cron task ", err)
-	}
-	if _, err := s.Every(cfg.Schedule.SendNotifyCronbeat).Do(handler.SendNotification); err != nil {
-		log.Fatal("failed cron task ", err)
-	}
+	s := getScheduler(log, handler, cfg)
 
 	ctx, cancel := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT,
@@ -105,6 +95,20 @@ func getHandler(log logger.AppLog, repo usecase.SchedulerRepo, amqp *amqp.Client
 	uc := usecase.NewSchedulerUC(log, repo)
 	producer := scheduler.NewProducerRMQ(amqp)
 	return scheduler.NewSchedHandler(log, uc, producer)
+}
+
+func getScheduler(log logger.AppLog, handler *scheduler.SchedHandler, cfg configs.SchedulerConfig) *gocron.Scheduler {
+	s := gocron.NewScheduler(time.UTC)
+	_, err := s.Every(cfg.Schedule.DeleteEventsCronbeat).Do(
+		handler.DeleteOldEvents, cfg.Schedule.DeleteEventsAgeDay,
+	)
+	if err != nil {
+		log.Fatal("failed cron task ", err)
+	}
+	if _, err := s.Every(cfg.Schedule.SendNotifyCronbeat).Do(handler.SendNotification); err != nil {
+		log.Fatal("failed cron task ", err)
+	}
+	return s
 }
 
 func gracefulStop(scheduler *gocron.Scheduler, timeout time.Duration) error {

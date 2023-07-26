@@ -169,7 +169,6 @@ func (s *memoryStorageTestSuite) TestDeleteOldEvents() {
 	err := s.repo.DeleteOldEvents(ctx, oldEvent1.EndTime.Add(time.Second))
 	s.Require().NoError(err)
 	s.Require().Equal(eventCount, len(s.repo.events))
-
 }
 
 func (s *memoryStorageTestSuite) TestGetEventsForNotify() {

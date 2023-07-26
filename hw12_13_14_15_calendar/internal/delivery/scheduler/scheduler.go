@@ -37,7 +37,6 @@ func (h *SchedHandler) DeleteOldEvents(days int) {
 	if err := h.uc.DeleteOldEvents(context.Background(), days); err != nil {
 		h.log.Error("error delete old events", err)
 	}
-	return
 }
 
 func (h *SchedHandler) SendNotification() {
@@ -67,5 +66,4 @@ func (h *SchedHandler) SendNotification() {
 			return
 		}
 	}
-	return
 }

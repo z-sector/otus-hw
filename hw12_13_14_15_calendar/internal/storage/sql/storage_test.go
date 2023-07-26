@@ -33,7 +33,9 @@ func TestPgRepo_Create(t *testing.T) {
 	}
 
 	mockPool.ExpectExec("INSERT").WithArgs(
-		pgxmock.AnyArg(), e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version, e.NotifyStatus,
+		pgxmock.AnyArg(), e.Title, e.BeginTime, e.EndTime,
+		e.Description, e.UserID, e.NotificationTime,
+		e.Version, e.NotifyStatus,
 	).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	event, err := repo.Create(ctx, data)
@@ -54,14 +56,16 @@ func TestPgRepo_Update(t *testing.T) {
 	e := makeEvent()
 
 	mockPool.ExpectExec("UPDATE").WithArgs(
-		e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version+1, e.NotifyStatus, e.ID.String(), e.Version,
+		e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version+1, e.NotifyStatus,
+		e.ID.String(), e.Version,
 	).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	err := repo.Update(ctx, &e)
 	require.NoError(t, err)
 	require.NoError(t, mockPool.ExpectationsWereMet())
 
 	mockPool.ExpectExec("UPDATE").WithArgs(
-		e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version+1, e.NotifyStatus, e.ID.String(), e.Version,
+		e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version+1, e.NotifyStatus,
+		e.ID.String(), e.Version,
 	).WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 	err = repo.Update(ctx, &e)
 	require.Error(t, err)
@@ -95,18 +99,16 @@ func TestPgRepo_GetByID(t *testing.T) {
 	expected := makeEvent()
 	mockPool.ExpectQuery("SELECT").WithArgs(expected.ID.String()).WillReturnRows(
 		pgxmock.NewRows(
-			[]string{"id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status"},
+			[]string{
+				"id", "title", "begin_time", "end_time",
+				"description", "user_id", "notification_time",
+				"version", "notify_status",
+			},
 		).
 			AddRow(
-				expected.ID,
-				expected.Title,
-				expected.BeginTime,
-				expected.EndTime,
-				expected.Description,
-				expected.UserID,
-				expected.NotificationTime,
-				expected.Version,
-				expected.NotifyStatus,
+				expected.ID, expected.Title, expected.BeginTime, expected.EndTime,
+				expected.Description, expected.UserID, expected.NotificationTime,
+				expected.Version, expected.NotifyStatus,
 			),
 	)
 
@@ -131,9 +133,21 @@ func TestPgRepo_GetByPeriod(t *testing.T) {
 
 	mockPool.ExpectQuery("SELECT").WithArgs(from, to).WillReturnRows(
 		pgxmock.NewRows(
-			[]string{"id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status"}).
-			AddRow(e0.ID, e0.Title, e0.BeginTime, e0.EndTime, e0.Description, e0.UserID, e0.NotificationTime, e0.Version, e0.NotifyStatus).
-			AddRow(e1.ID, e1.Title, e1.BeginTime, e1.EndTime, e1.Description, e1.UserID, e1.NotificationTime, e1.Version, e1.NotifyStatus),
+			[]string{
+				"id", "title", "begin_time", "end_time",
+				"description", "user_id", "notification_time",
+				"version", "notify_status",
+			}).
+			AddRow(
+				e0.ID, e0.Title, e0.BeginTime, e0.EndTime,
+				e0.Description, e0.UserID, e0.NotificationTime,
+				e0.Version, e0.NotifyStatus,
+			).
+			AddRow(
+				e1.ID, e1.Title, e1.BeginTime, e1.EndTime,
+				e1.Description, e1.UserID, e1.NotificationTime,
+				e1.Version, e1.NotifyStatus,
+			),
 	)
 
 	eList, err := repo.GetByPeriod(ctx, from, to)
@@ -170,8 +184,16 @@ func TestPgRepo_GetEventsForNotify(t *testing.T) {
 
 	mockPool.ExpectQuery("SELECT").WithArgs(*e.NotificationTime, internal.NotSentStatus).WillReturnRows(
 		pgxmock.NewRows(
-			[]string{"id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status"},
-		).AddRow(e.ID, e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version, e.NotifyStatus),
+			[]string{
+				"id", "title", "begin_time", "end_time",
+				"description", "user_id", "notification_time",
+				"version", "notify_status",
+			},
+		).AddRow(
+			e.ID, e.Title, e.BeginTime, e.EndTime,
+			e.Description, e.UserID, e.NotificationTime,
+			e.Version, e.NotifyStatus,
+		),
 	)
 
 	eList, err := repo.GetEventsForNotify(ctx, *e.NotificationTime)

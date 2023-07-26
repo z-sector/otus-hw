@@ -58,7 +58,6 @@ func (client *ClientAMQP) handleReconnect(addr string) {
 		client.logger.Info("Attempting to connect")
 
 		conn, err := client.connect(addr)
-
 		if err != nil {
 			client.logger.Info("Failed to connect. Retrying...")
 
@@ -78,7 +77,6 @@ func (client *ClientAMQP) handleReconnect(addr string) {
 
 func (client *ClientAMQP) connect(addr string) (*amqp.Connection, error) {
 	conn, err := amqp.Dial(addr)
-
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +91,6 @@ func (client *ClientAMQP) handleReInit(conn *amqp.Connection) bool {
 		client.isReady = false
 
 		err := client.init(conn)
-
 		if err != nil {
 			client.logger.Info("Failed to initialize channel. Retrying...")
 
@@ -122,7 +119,6 @@ func (client *ClientAMQP) handleReInit(conn *amqp.Connection) bool {
 
 func (client *ClientAMQP) init(conn *amqp.Connection) error {
 	ch, err := conn.Channel()
-
 	if err != nil {
 		return err
 	}
