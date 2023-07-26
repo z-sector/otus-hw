@@ -17,6 +17,7 @@ require (
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.2
+	go.uber.org/mock v0.2.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.30.0
 )

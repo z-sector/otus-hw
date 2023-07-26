@@ -65,7 +65,10 @@ makemigrations: ## e.g `make makemigrations name=init`
 migrate:
 	docker compose $(DCF) run --rm --no-deps migrator
 
-generate:
+install-gomock:
+	@(which mockgen > /dev/null) || go install go.uber.org/mock/mockgen@v0.2.0
+
+generate: install-gomock
 	go generate ./...
 
-.PHONY: build-server run-server run-scheduler build-scheduler run-sender build-sender build-img run-img version test lint dc-up dc-down dc-down-prune makemigrations migrate generate
+.PHONY: build-server run-server run-scheduler build-scheduler run-sender build-sender build-img run-img version test lint dc-up dc-down dc-down-prune makemigrations migrate install-gomock generate
