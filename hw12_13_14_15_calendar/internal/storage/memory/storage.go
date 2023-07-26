@@ -14,7 +14,11 @@ import (
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/logger"
 )
 
-var _ usecase.EventRepo = (*MemoryRepo)(nil)
+var (
+	_ usecase.EventRepo     = &MemoryRepo{}
+	_ usecase.SchedulerRepo = &MemoryRepo{}
+	_ usecase.SenderRepo    = &MemoryRepo{}
+)
 
 type MemoryRepo struct {
 	mu     sync.RWMutex
@@ -46,6 +50,7 @@ func (m *MemoryRepo) Create(_ context.Context, data dto.CreateEventDTO) (interna
 		UserID:           data.UserID,
 		NotificationTime: data.NotificationTime,
 		Version:          1,
+		NotifyStatus:     internal.NotSentStatus,
 	}
 
 	m.events[event.ID] = event
@@ -113,6 +118,51 @@ func (m *MemoryRepo) GetByPeriod(_ context.Context, from, to time.Time) ([]inter
 	})
 
 	return events, nil
+}
+
+func (m *MemoryRepo) DeleteOldEvents(_ context.Context, to time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for id, e := range m.events {
+		if e.EndTime.Before(to) {
+			delete(m.events, id)
+		}
+	}
+	return nil
+}
+
+func (m *MemoryRepo) GetEventsForNotify(_ context.Context, time time.Time) ([]internal.Event, error) {
+	events := make([]internal.Event, 0)
+	for _, e := range m.events {
+		if e.NotifyStatus == internal.NotSentStatus && (e.NotificationTime.After(time) || e.NotificationTime.Equal(time)) {
+			events = append(events, e)
+		}
+	}
+	return events, nil
+}
+
+func (m *MemoryRepo) SetNotifyStatus(_ context.Context, ID uuid.UUID, status internal.RemindStatus) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if e, ok := m.events[ID]; ok {
+		e.NotifyStatus = status
+		m.events[ID] = e
+	}
+	return nil
+}
+
+func (m *MemoryRepo) SetNotSentStatus(ctx context.Context, ID uuid.UUID) error {
+	return m.SetNotifyStatus(ctx, ID, internal.NotSentStatus)
+}
+
+func (m *MemoryRepo) SetProcessingNotifyStatus(ctx context.Context, ID uuid.UUID) error {
+	return m.SetNotifyStatus(ctx, ID, internal.ProcessingStatus)
+}
+
+func (m *MemoryRepo) SetSentNotifyStatus(ctx context.Context, ID uuid.UUID) error {
+	return m.SetNotifyStatus(ctx, ID, internal.SentStatus)
 }
 
 func (m *MemoryRepo) existsByID(ID uuid.UUID) bool {

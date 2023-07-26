@@ -1,0 +1,19 @@
+logger:
+  level: "debug"
+  json: false
+
+mq:
+  username: user
+  password: 1234
+  host: localhost
+  port: 5672
+  queue: "event_notifications"
+
+storage:
+  type: sql
+  db:
+    host: localhost
+    port: 15432
+    database: calendar
+    username: user
+    password: 1234

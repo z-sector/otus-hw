@@ -17,7 +17,11 @@ import (
 	"github.com/z-sector/otus-hw/hw12_13_14_15_calendar/pkg/postgres"
 )
 
-var _ usecase.EventRepo = (*PgRepo)(nil)
+var (
+	_ usecase.EventRepo     = &PgRepo{}
+	_ usecase.SchedulerRepo = &PgRepo{}
+	_ usecase.SenderRepo    = &PgRepo{}
+)
 
 type PgRepo struct {
 	*postgres.Postgres
@@ -43,12 +47,13 @@ func (p *PgRepo) Create(ctx context.Context, data dto.CreateEventDTO) (internal.
 		UserID:           data.UserID,
 		NotificationTime: data.NotificationTime,
 		Version:          1,
+		NotifyStatus:     internal.NotSentStatus,
 	}
 
 	sql, args, err := p.Builder.
 		Insert(p.tableName).
-		Columns("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version").
-		Values(e.ID, e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version).
+		Columns("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status").
+		Values(e.ID, e.Title, e.BeginTime, e.EndTime, e.Description, e.UserID, e.NotificationTime, e.Version, e.NotifyStatus).
 		ToSql()
 	if err != nil {
 		return internal.Event{}, fmt.Errorf("PgRepo - Create - r.Builder: %w", err)
@@ -72,6 +77,7 @@ func (p *PgRepo) Update(ctx context.Context, e *internal.Event) error {
 		Set("user_id", e.UserID).
 		Set("notification_time", e.NotificationTime).
 		Set("version", e.Version).
+		Set("notify_status", e.NotifyStatus).
 		Where(squirrel.Eq{"id": e.ID, "version": e.Version - 1}).
 		ToSql()
 	if err != nil {
@@ -126,6 +132,7 @@ func (p *PgRepo) GetByID(ctx context.Context, ID uuid.UUID) (internal.Event, err
 		&e.UserID,
 		&e.NotificationTime,
 		&e.Version,
+		&e.NotifyStatus,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -142,7 +149,7 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 		squirrel.Lt{"begin_time": to},
 	}
 	sql, args, err := p.Builder.
-		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version").
+		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status").
 		From(p.tableName).Where(filter).OrderBy("begin_time").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("PgRepo - GetByPeriod - r.Builder: %w", err)
@@ -167,6 +174,7 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 			&e.UserID,
 			&e.NotificationTime,
 			&e.Version,
+			&e.NotifyStatus,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("PgRepo - GetByPeriod - rows.Scan: %w", err)
@@ -179,6 +187,98 @@ func (p *PgRepo) GetByPeriod(ctx context.Context, from, to time.Time) ([]interna
 		return nil, err
 	}
 	return entities, nil
+}
+
+func (p *PgRepo) DeleteOldEvents(ctx context.Context, to time.Time) error {
+	filter := squirrel.Lt{"end_time": to}
+	sql, args, err := p.Builder.Delete(p.tableName).Where(filter).ToSql()
+	if err != nil {
+		return fmt.Errorf("PgRepo - DeleteOldEvents - r.Builder: %w", err)
+	}
+
+	_, err = p.Pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("PgRepo - DeleteOldEvents - r.Pool.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func (p *PgRepo) GetEventsForNotify(ctx context.Context, time time.Time) ([]internal.Event, error) {
+	filter := squirrel.And{
+		squirrel.NotEq{"notification_time": nil},
+		squirrel.LtOrEq{"notification_time": time},
+		squirrel.Eq{"notify_status": internal.NotSentStatus},
+	}
+	sql, args, err := p.Builder.
+		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status").
+		From(p.tableName).Where(filter).OrderBy("notification_time").ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("PgRepo - GetEventsForNotify - r.Builder: %w", err)
+	}
+
+	rows, err := p.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("PgRepo - GetEventsForNotify - r.Builder: %w", err)
+	}
+
+	entities := make([]internal.Event, 0)
+
+	for rows.Next() {
+		var e internal.Event
+
+		err = rows.Scan(
+			&e.ID,
+			&e.Title,
+			&e.BeginTime,
+			&e.EndTime,
+			&e.Description,
+			&e.UserID,
+			&e.NotificationTime,
+			&e.Version,
+			&e.NotifyStatus,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("PgRepo - GetEventsForNotify - rows.Scan: %w", err)
+		}
+
+		entities = append(entities, e)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return entities, nil
+}
+
+func (p *PgRepo) SetNotifyStatus(ctx context.Context, ID uuid.UUID, status internal.RemindStatus) error {
+	filter := squirrel.Eq{"id": ID}
+	sql, args, err := p.Builder.Update(p.tableName).Set("notify_status", status).Where(filter).ToSql()
+	if err != nil {
+		return fmt.Errorf("PgRepo - SetNotifyStatus - r.Builder: %w", err)
+	}
+
+	c, err := p.Pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("PgRepo - SetNotifyStatus - r.Pool.Exec: %w", err)
+	}
+	if c.RowsAffected() != 1 {
+		return internal.ErrStorageConflict
+	}
+
+	return nil
+}
+
+func (p *PgRepo) SetNotSentStatus(ctx context.Context, ID uuid.UUID) error {
+	return p.SetNotifyStatus(ctx, ID, internal.NotSentStatus)
+}
+
+func (p *PgRepo) SetProcessingNotifyStatus(ctx context.Context, ID uuid.UUID) error {
+	return p.SetNotifyStatus(ctx, ID, internal.ProcessingStatus)
+}
+
+func (p *PgRepo) SetSentNotifyStatus(ctx context.Context, ID uuid.UUID) error {
+	return p.SetNotifyStatus(ctx, ID, internal.SentStatus)
 }
 
 func (p *PgRepo) existsByID(ctx context.Context, ID uuid.UUID) (bool, error) { // nolint: unused

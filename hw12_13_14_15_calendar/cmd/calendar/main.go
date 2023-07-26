@@ -28,7 +28,7 @@ type ServerI interface {
 }
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "/etc/calendar/config.yaml", "Path to configuration file")
 }
 
 func main() {
@@ -82,9 +82,9 @@ func main() {
 	}
 }
 
-func mustConfig(l logger.AppLog) configs.Config {
-	cfg, err := configs.NewConfig(configFile)
-	if err != nil {
+func mustConfig(l logger.AppLog) configs.CalendarConfig {
+	var cfg configs.CalendarConfig
+	if err := configs.ParseConfig(configFile, &cfg); err != nil {
 		l.Fatal("incorrect config file", err)
 	}
 	l.Info(fmt.Sprintf("%v", cfg))

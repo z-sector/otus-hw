@@ -33,5 +33,63 @@ services:
 #      pg:
 #        condition: service_healthy
 
+  rabbitmq:
+    image: rabbitmq:3.11.19-management
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_PLUGINS_DIR: /opt/rabbitmq/plugins:/usr/lib/rabbitmq/plugins
+    volumes:
+      - ../build/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ../build/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+      - ../build/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - ../build/rabbitmq/plugins:/usr/lib/rabbitmq/plugins
+
+  server:
+    build:
+      context: ../
+      dockerfile: ./build/server/Dockerfile
+    environment:
+      APP_STORAGE_DB_HOST: pg
+      APP_STORAGE_DB_PORT: ${DB_PORT}
+      APP_STORAGE_DB_DATABASE: ${DB_NAME}
+      APP_STORAGE_DB_USERNAME: ${DB_USER}
+      APP_STORAGE_DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "7000:7000"
+    depends_on:
+      - pg
+
+  scheduler:
+    build:
+      context: ../
+      dockerfile: ./build/scheduler/Dockerfile
+    environment:
+      APP_STORAGE_DB_HOST: pg
+      APP_STORAGE_DB_PORT: ${DB_PORT}
+      APP_STORAGE_DB_DATABASE: ${DB_NAME}
+      APP_STORAGE_DB_USERNAME: ${DB_USER}
+      APP_STORAGE_DB_PASSWORD: ${DB_PASSWORD}
+      APP_MQ_HOST: rabbitmq
+    depends_on:
+      - pg
+      - rabbitmq
+
+  sender:
+    build:
+      context: ../
+      dockerfile: ./build/sender/Dockerfile
+    environment:
+      APP_STORAGE_DB_HOST: pg
+      APP_STORAGE_DB_PORT: ${DB_PORT}
+      APP_STORAGE_DB_DATABASE: ${DB_NAME}
+      APP_STORAGE_DB_USERNAME: ${DB_USER}
+      APP_STORAGE_DB_PASSWORD: ${DB_PASSWORD}
+      APP_MQ_HOST: rabbitmq
+    depends_on:
+      - pg
+      - rabbitmq
+
 volumes:
   pg_data:
