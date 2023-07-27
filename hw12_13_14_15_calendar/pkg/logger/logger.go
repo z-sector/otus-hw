@@ -91,7 +91,8 @@ func Nop() AppLog {
 }
 
 func getLog(level zerolog.Level, writer io.Writer) zerolog.Logger {
-	return zerolog.New(writer).Level(level).With().Timestamp().Caller().Logger()
+	return zerolog.New(writer).Level(level).With().Timestamp().
+		CallerWithSkipFrameCount(zerolog.CallerSkipFrameCount + 1).Logger()
 }
 
 func getConsoleWriter() io.Writer {

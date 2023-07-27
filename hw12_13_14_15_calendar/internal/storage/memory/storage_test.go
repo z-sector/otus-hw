@@ -158,6 +158,42 @@ func (s *memoryStorageTestSuite) TestGetByPeriod() {
 	})
 }
 
+func (s *memoryStorageTestSuite) TestDeleteOldEvents() {
+	ctx := context.Background()
+	beginTime := time.Now().UTC().Add(-time.Hour)
+	oldEvent1 := makeTestEvent(beginTime)
+	s.repo.events[oldEvent1.ID] = oldEvent1
+	oldEvent2 := makeTestEvent(beginTime)
+	s.repo.events[oldEvent2.ID] = oldEvent2
+
+	err := s.repo.DeleteOldEvents(ctx, oldEvent1.EndTime.Add(time.Second))
+	s.Require().NoError(err)
+	s.Require().Equal(eventCount, len(s.repo.events))
+}
+
+func (s *memoryStorageTestSuite) TestGetEventsForNotify() {
+	ctx := context.Background()
+	event := makeTestEvent(time.Now().UTC().Add(time.Hour))
+	s.repo.events[event.ID] = event
+
+	res, err := s.repo.GetEventsForNotify(ctx, *event.NotificationTime)
+	s.Require().NoError(err)
+	s.Require().Equal(1, len(res))
+}
+
+func (s *memoryStorageTestSuite) TestSetNotifyStatus() {
+	ctx := context.Background()
+	ID := s.events[0].ID
+
+	err := s.repo.SetNotifyStatus(ctx, ID, internal.ProcessingStatus)
+	s.Require().NoError(err)
+	s.Require().Equal(internal.ProcessingStatus, s.repo.events[ID].NotifyStatus)
+
+	err = s.repo.SetNotifyStatus(ctx, ID, internal.SentStatus)
+	s.Require().NoError(err)
+	s.Require().Equal(internal.SentStatus, s.repo.events[ID].NotifyStatus)
+}
+
 func TestMemoryStorage(t *testing.T) {
 	suite.Run(t, new(memoryStorageTestSuite))
 }
@@ -223,6 +259,7 @@ func makeTestEvent(beginTime time.Time) internal.Event {
 		UserID:           uuid.New(),
 		NotificationTime: &notificationTime,
 		Version:          1,
+		NotifyStatus:     0,
 	}
 }
 

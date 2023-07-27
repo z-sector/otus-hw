@@ -55,4 +55,5 @@ func (u UpdateEventDTO) UpdateEvent(event *internal.Event) {
 	event.EndTime = u.EndTime
 	event.NotificationTime = u.NotificationTime
 	event.Description = u.Description
+	event.NotifyStatus = 0
 }

@@ -11,43 +11,55 @@ import (
 
 const envPrefix = "APP"
 
-type Config struct {
+type CalendarConfig struct {
 	Logger  LoggerConf
 	Server  ServerConf
 	Storage StorageConf
 }
 
-func (c Config) String() string {
-	return fmt.Sprintf("Config{Logger:%s Server:%s Storage:%s}", c.Logger, c.Server, c.Storage)
+func (c CalendarConfig) String() string {
+	return fmt.Sprintf("CalendarConfig{Logger:%s Server:%s Storage:%s}", c.Logger, c.Server, c.Storage)
 }
 
-func NewConfig(cfgFile string) (Config, error) {
+type SchedulerConfig struct {
+	Schedule ScheduleConf
+	Logger   LoggerConf
+	MQ       MQConf
+	Storage  StorageConf
+}
+
+func (c SchedulerConfig) String() string {
+	return fmt.Sprintf("SchedulerConfig{Schedule:%s Logger:%s MQ:%s Storage:%s}", c.Schedule, c.Logger, c.MQ, c.Storage)
+}
+
+type SenderConfig struct {
+	Logger  LoggerConf
+	MQ      MQConf
+	Storage StorageConf
+}
+
+func (c SenderConfig) String() string {
+	return fmt.Sprintf("SenderConfig{Logger:%s MQ:%s Storage:%s}", c.Logger, c.MQ, c.Storage)
+}
+
+func ParseConfig(cfgFile string, cfg any) error {
 	viper.SetConfigFile(cfgFile)
 	viper.SetEnvPrefix(envPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		return Config{}, fmt.Errorf("failed to read config %q: %w", cfgFile, err)
+		return fmt.Errorf("failed to read config %q: %w", cfgFile, err)
 	}
 
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return Config{}, fmt.Errorf("unable to decode into config struct: %w", err)
+	if err := viper.Unmarshal(cfg); err != nil {
+		return fmt.Errorf("unable to decode into config struct: %w", err)
 	}
 
-	if cfg.Storage.Type == StorageMemory {
-		cfg.Storage.DB = nil
-	}
-
-	if err := validateConfig(cfg); err != nil {
-		return Config{}, err
-	}
-
-	return cfg, nil
+	return validateConfig(cfg)
 }
 
-func validateConfig(cfg Config) error {
+func validateConfig(cfg any) error {
 	err := validate.Struct(cfg)
 	if err == nil {
 		return nil

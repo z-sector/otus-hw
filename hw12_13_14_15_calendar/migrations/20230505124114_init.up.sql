@@ -7,7 +7,8 @@ CREATE TABLE events
     description       text,
     user_id           uuid        NOT NULL,
     notification_time timestamptz,
-    version           smallint NOT NULL,
+    version           smallint    NOT NULL,
+    notify_status     smallint    NOT NULL,
 
     CONSTRAINT valid_period CHECK ( begin_time < end_time ),
     CONSTRAINT valid_notification_time CHECK ( notification_time is null or notification_time <= begin_time ),
