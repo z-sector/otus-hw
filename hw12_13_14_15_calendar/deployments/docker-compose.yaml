@@ -34,17 +34,15 @@ services:
 #        condition: service_healthy
 
   rabbitmq:
-    image: rabbitmq:3.11.19-management
+    build:
+      context: ../
+      dockerfile: ./build/rabbitmq/Dockerfile
     ports:
       - "15672:15672"
       - "5672:5672"
-    environment:
-      RABBITMQ_PLUGINS_DIR: /opt/rabbitmq/plugins:/usr/lib/rabbitmq/plugins
     volumes:
       - ../build/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - ../build/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
-      - ../build/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
-      - ../build/rabbitmq/plugins:/usr/lib/rabbitmq/plugins
 
   server:
     build:
