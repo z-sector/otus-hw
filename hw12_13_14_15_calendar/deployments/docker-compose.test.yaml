@@ -7,7 +7,7 @@ services:
       dockerfile: ./build/test/Dockerfile
     environment:
       SERVER_ADDR: http://server:7000
-      PG_ADDR: postgres://user:1234}@pg:5433/calendar
+      PG_ADDR: postgres://user:1234@pg:5433/calendar
     networks:
       - calendar_test_net
 
