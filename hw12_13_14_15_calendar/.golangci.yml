@@ -3,6 +3,7 @@ run:
   build-tags:
     - bench
     - !bench
+    - integration
 
 linters-settings:
   funlen:
@@ -17,6 +18,7 @@ issues:
         - dupl
         - gocyclo
         - gosec
+        - noctx
   exclude:
     - "captLocal: `(ID|RID)' should not be capitalized"
 
@@ -25,7 +27,7 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - depguard
+#    - depguard
     - dogsled
     - dupl
     - durationcheck

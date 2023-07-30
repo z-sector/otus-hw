@@ -83,3 +83,14 @@ jobs:
       - name: make test
         run: make test
         working-directory: hw12_13_14_15_calendar
+
+  integration_test:
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'hw15_calendar')
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: integration-tests
+        run: make integration-tests
+        working-directory: hw12_13_14_15_calendar

@@ -122,7 +122,9 @@ func (p *PgRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 
 func (p *PgRepo) GetByID(ctx context.Context, ID uuid.UUID) (internal.Event, error) {
 	sql, args, err := p.Builder.
-		Select("id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version").
+		Select(
+			"id", "title", "begin_time", "end_time", "description", "user_id", "notification_time", "version", "notify_status",
+		).
 		From(p.tableName).
 		Where(squirrel.Eq{"id": ID}).
 		ToSql()

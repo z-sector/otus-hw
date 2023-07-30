@@ -7,6 +7,8 @@ GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
 DCF := -f deployments/docker-compose.yaml --env-file deployments/.env.example
+DCF_TEST := -p test -f deployments/docker-compose.yaml --env-file deployments/.env.example
+DCF_SCRIPT_TEST := -f deployments/docker-compose.test.yaml --env-file deployments/.env.example
 
 build-server:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
@@ -71,4 +73,9 @@ install-gomock:
 generate: install-gomock
 	go generate ./...
 
-.PHONY: build-server run-server run-scheduler build-scheduler run-sender build-sender build-img run-img version test lint dc-up dc-down dc-down-prune makemigrations migrate install-gomock generate
+integration-tests:
+	docker compose $(DCF_TEST) down -v && docker compose $(DCF_TEST) up --build --detach
+	docker compose $(DCF_SCRIPT_TEST) run --build --rm test; EXIT_CODE=$$?; docker compose $(DCF_TEST) down -v; exit $${EXIT_CODE}
+
+.PHONY: build-server run-server run-scheduler build-scheduler run-sender build-sender build-img run-img \
+version test lint dc-up dc-down dc-down-prune makemigrations migrate install-gomock generate integration-tests

@@ -23,7 +23,7 @@ type Event struct {
 	UserID           uuid.UUID
 	NotificationTime *time.Time
 	Version          int32
-	NotifyStatus     RemindStatus
+	NotifyStatus     RemindStatus `json:"-"`
 }
 
 func (e Event) CreateNotification() EventNotification {

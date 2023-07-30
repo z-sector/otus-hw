@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  test:
+    build:
+      context: ../
+      dockerfile: ./build/test/Dockerfile
+    environment:
+      SERVER_ADDR: http://server:7000
+      PG_ADDR: postgres://${DB_USER}:${DB_PASSWORD}@pg:${DB_PORT}/${DB_NAME}
+    networks:
+      - calendar_test_net
+
+networks:
+  calendar_test_net:
+    name: calendar_network
+    external: true
