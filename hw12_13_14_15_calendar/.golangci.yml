@@ -4,6 +4,7 @@ run:
     - bench
     - !bench
     - integration
+  timeout: 5m
 
 linters-settings:
   funlen:
