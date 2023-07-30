@@ -73,9 +73,14 @@ install-gomock:
 generate: install-gomock
 	go generate ./...
 
+down: dc-down
+
+up: down dc-up
+
 integration-tests:
 	docker compose $(DCF_TEST) down -v && docker compose $(DCF_TEST) up --build --detach
 	docker compose $(DCF_SCRIPT_TEST) run --build --rm test; EXIT_CODE=$$?; docker compose $(DCF_TEST) down -v; exit $${EXIT_CODE}
 
 .PHONY: build-server run-server run-scheduler build-scheduler run-sender build-sender build-img run-img \
-version test lint dc-up dc-down dc-down-prune makemigrations migrate install-gomock generate integration-tests
+version test lint dc-up dc-down dc-down-prune makemigrations migrate install-gomock generate integration-tests \
+down up
