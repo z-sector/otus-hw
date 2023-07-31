@@ -6,9 +6,9 @@ DOCKER_IMG="calendar:develop"
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
-DCF := -f deployments/docker-compose.yaml --env-file deployments/.env.example
-DCF_TEST := -p test -f deployments/docker-compose.yaml --env-file deployments/.env.example
-DCF_SCRIPT_TEST := -f deployments/docker-compose.test.yaml --env-file deployments/.env.example
+DCF := -f deployments/docker-compose.yaml
+DCF_TEST := -p test -f deployments/docker-compose.yaml
+DCF_SCRIPT_TEST := -f deployments/docker-compose.test.yaml
 
 build-server:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
