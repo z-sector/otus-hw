@@ -5,33 +5,33 @@ services:
     image: postgres:14.7
     restart: always
     ports:
-      - 15432:${DB_PORT}
+      - "15432:5433"
     volumes:
       - pg_data:/var/lib/postgresql/data
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      PGPORT: ${DB_PORT}
+      POSTGRES_DB: calendar
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 1234
+      PGPORT: 5433
     command: [ "postgres", "-c", "log_statement=all", "-c", "log_min_messages=INFO", "-c", "log_min_duration_statement=0" ]
-#    healthcheck:
-#      test: ['CMD-SHELL', 'psql -U $${POSTGRES_USER} -c "select 1" -d $${POSTGRES_DB}']
-#      interval: 10s
-#      timeout: 5s
-#      retries: 3
-#
+    healthcheck:
+      test: ['CMD-SHELL', 'psql -U $${POSTGRES_USER} -c "select 1" -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   migrator:
     build:
       context: ../
       dockerfile: ./build/migrate/Dockerfile
     environment:
-      PG_URL: postgres://${DB_USER}:${DB_PASSWORD}@pg:${DB_PORT}/${DB_NAME}?sslmode=disable
+      PG_URL: postgres://user:1234@pg:5433/calendar?sslmode=disable
     volumes:
       - ../migrations:/migrations
-#    depends_on:
-#      pg:
-#        condition: service_healthy
+    depends_on:
+      pg:
+        condition: service_healthy
 
   rabbitmq:
     build:
@@ -43,6 +43,11 @@ services:
     volumes:
       - ../build/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - ../build/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    healthcheck:
+      test: rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   server:
     build:
@@ -50,14 +55,15 @@ services:
       dockerfile: ./build/server/Dockerfile
     environment:
       APP_STORAGE_DB_HOST: pg
-      APP_STORAGE_DB_PORT: ${DB_PORT}
-      APP_STORAGE_DB_DATABASE: ${DB_NAME}
-      APP_STORAGE_DB_USERNAME: ${DB_USER}
-      APP_STORAGE_DB_PASSWORD: ${DB_PASSWORD}
+      APP_STORAGE_DB_PORT: 5433
+      APP_STORAGE_DB_DATABASE: calendar
+      APP_STORAGE_DB_USERNAME: user
+      APP_STORAGE_DB_PASSWORD: 1234
     ports:
       - "7000:7000"
     depends_on:
-      - pg
+      migrator:
+        condition: service_completed_successfully
 
   scheduler:
     build:
@@ -65,14 +71,16 @@ services:
       dockerfile: ./build/scheduler/Dockerfile
     environment:
       APP_STORAGE_DB_HOST: pg
-      APP_STORAGE_DB_PORT: ${DB_PORT}
-      APP_STORAGE_DB_DATABASE: ${DB_NAME}
-      APP_STORAGE_DB_USERNAME: ${DB_USER}
-      APP_STORAGE_DB_PASSWORD: ${DB_PASSWORD}
+      APP_STORAGE_DB_PORT: 5433
+      APP_STORAGE_DB_DATABASE: calendar
+      APP_STORAGE_DB_USERNAME: user
+      APP_STORAGE_DB_PASSWORD: 1234
       APP_MQ_HOST: rabbitmq
     depends_on:
-      - pg
-      - rabbitmq
+      migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
 
   sender:
     build:
@@ -80,14 +88,20 @@ services:
       dockerfile: ./build/sender/Dockerfile
     environment:
       APP_STORAGE_DB_HOST: pg
-      APP_STORAGE_DB_PORT: ${DB_PORT}
-      APP_STORAGE_DB_DATABASE: ${DB_NAME}
-      APP_STORAGE_DB_USERNAME: ${DB_USER}
-      APP_STORAGE_DB_PASSWORD: ${DB_PASSWORD}
+      APP_STORAGE_DB_PORT: 5433
+      APP_STORAGE_DB_DATABASE: calendar
+      APP_STORAGE_DB_USERNAME: user
+      APP_STORAGE_DB_PASSWORD: 1234
       APP_MQ_HOST: rabbitmq
     depends_on:
-      - pg
-      - rabbitmq
+      migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   pg_data:
+
+networks:
+  default:
+    name: calendar_network

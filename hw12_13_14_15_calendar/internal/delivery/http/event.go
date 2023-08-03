@@ -71,6 +71,12 @@ func (h *EventHTTPHandler) UpdateEvent(c *gin.Context) {
 			response.WriteError(c, http.StatusBadRequest, errVal)
 			return
 		}
+
+		if errors.Is(err, internal.ErrStorageConflict) {
+			response.WriteError(c, http.StatusConflict, nil)
+			return
+		}
+
 		if errors.Is(err, internal.ErrStorageNotFound) {
 			response.WriteError(c, http.StatusNotFound, nil)
 			return
@@ -125,8 +131,8 @@ func (h *EventHTTPHandler) GetByID(c *gin.Context) {
 }
 
 type QueryParamsPeriod struct {
-	From time.Time `binding:"required"`
-	To   time.Time `binding:"required"`
+	From time.Time `binding:"required" form:"from"`
+	To   time.Time `binding:"required" form:"to"`
 }
 
 func (h *EventHTTPHandler) GetByPeriod(c *gin.Context) {

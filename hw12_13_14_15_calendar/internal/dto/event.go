@@ -33,9 +33,9 @@ type UpdateEventDTO struct {
 	BeginTime        time.Time `binding:"required"`
 	EndTime          time.Time `binding:"required"`
 	Description      string
-	UserID           uuid.UUID  `binding:"required"`
-	NotificationTime *time.Time `binding:"required"`
-	LastVersion      int32      `binding:"required"`
+	UserID           uuid.UUID `binding:"required"`
+	NotificationTime *time.Time
+	LastVersion      int32 `binding:"required"`
 }
 
 func (u UpdateEventDTO) Validate() error {
